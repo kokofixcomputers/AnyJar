@@ -1,0 +1,39 @@
+plugins {
+	id 'net.neoforged.moddev' version "${moddevgradle_version}"
+}
+
+base {
+	archivesName = 'anyjar'
+}
+
+neoForge {
+	version = project.neoforge_version
+}
+
+sourceSets {
+	main {
+		java {
+			// The actual download/launch/log-patch/port-sync logic lives in :common,
+			// shared as-is with the Fabric entrypoint. Compile it straight into this jar.
+			srcDir rootProject.file('common/src/main/java')
+		}
+	}
+}
+
+// NeoForge for this Minecraft version requires Java 25 at the dependency level
+// (FancyModLoader's own artifacts are Java-25-targeted); Fabric has no such constraint,
+// so only this subproject needs the higher target.
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	from(rootProject.file("LICENSE")) {
+		rename { "${it}_anyjar" }
+	}
+}

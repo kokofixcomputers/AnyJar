@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "anyjar",
+	"version": "${version}",
+	"name": "AnyJar",
+	"description": "Lets you run any Minecraft server software (Paper, Velocity, Forge, NeoForge, and more) on a host that only supports Fabric mods.",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/anyjar/icon.png",
+	"environment": "server",
+	"entrypoints": {
+		"preLaunch": [
+			"cc.kokodev.anyjar.fabric.AnyJarPreLaunch"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "*",
+		"java": ">=21"
+	}
+}

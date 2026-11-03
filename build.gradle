@@ -1,0 +1,48 @@
+plugins {
+	id 'base'
+}
+
+allprojects {
+	group = rootProject.property('group')
+	version = rootProject.property('version')
+}
+
+// Combines the Fabric and NeoForge mod jars into a single jar that loads on either
+// platform: each loader only ever looks at its own metadata file (fabric.mod.json vs
+// META-INF/neoforge.mods.toml) and only classloads the entrypoint class that file points
+// to, so having both platforms' files and classes in one jar is harmless. The shared
+// cc.kokodev.anyjar.* classes are compiled into both subprojects identically;
+// duplicatesStrategy keeps a single copy of those in the merged jar.
+//
+// Adding a future loader follows the same pattern: give it its own subproject with its
+// own metadata file + a thin entrypoint class delegating to :common's AnyJarLauncher,
+// then add its jar task as another `from(...)` below.
+tasks.register('mergedJar', Jar) {
+	group = 'build'
+	description = 'Combines the Fabric and NeoForge mod jars into a single jar that loads on either platform.'
+
+	dependsOn ':fabric:jar', ':neoforge:jar'
+
+	from(zipTree(project(':fabric').tasks.named('jar').flatMap { it.archiveFile })) {
+		exclude 'META-INF/MANIFEST.MF'
+	}
+	from(zipTree(project(':neoforge').tasks.named('jar').flatMap { it.archiveFile })) {
+		exclude 'META-INF/MANIFEST.MF'
+	}
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+	archiveBaseName = 'anyjar'
+	archiveVersion = project.version.toString()
+	destinationDirectory = layout.buildDirectory.dir('libs')
+
+	manifest {
+		attributes(
+				'Implementation-Title': 'AnyJar',
+				'Implementation-Version': project.version.toString()
+		)
+	}
+}
+
+tasks.named('assemble') {
+	dependsOn 'mergedJar'
+}

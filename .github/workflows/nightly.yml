@@ -1,0 +1,52 @@
+# Builds the mod on every push to main and republishes it as a rolling "nightly" tag +
+# GitHub Release on this repository (https://github.com/kokofixcomputers/AnyJar), with the
+# built jar attached. The "nightly" tag is force-moved to the new commit each time, so there
+# is always exactly one nightly release pointing at the latest build.
+name: nightly
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  nightly:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: setup jdk
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: build
+        run: ./gradlew build
+
+      - name: move nightly tag to this commit
+        run: |
+          git tag -f nightly
+          git push origin nightly --force
+
+      - name: publish nightly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: Nightly build
+          prerelease: true
+          make_latest: false
+          body: |
+            Automated nightly build from ${{ github.sha }}.
+            This release is overwritten on every push to main.
+          files: |
+            build/libs/*.jar

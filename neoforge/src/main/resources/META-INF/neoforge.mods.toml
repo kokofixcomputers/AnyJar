@@ -1,0 +1,24 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "CC0-1.0"
+issueTrackerURL = "https://github.com/FabricMC/fabric-example-mod"
+
+[[mods]]
+modId = "anyjar"
+version = "${file.jarVersion}"
+displayName = "AnyJar"
+description = '''Lets you run any Minecraft server software (Paper, Velocity, Forge, NeoForge, and more) on a host that only supports NeoForge mods.'''
+
+[[dependencies.anyjar]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21,)"
+ordering = "NONE"
+side = "SERVER"
+
+[[dependencies.anyjar]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1,)"
+ordering = "NONE"
+side = "SERVER"
