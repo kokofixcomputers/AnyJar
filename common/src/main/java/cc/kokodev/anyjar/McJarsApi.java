@@ -6,6 +6,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,15 @@ import java.util.Map;
 final class McJarsApi {
 	private static final String BASE = "https://versions.mcjars.app/api/v1";
 
+	/**
+	 * Limbo (anti-bot / placeholder) server software mcjars.app's build endpoints serve
+	 * (e.g. GET /builds/NANOLIMBO works fine) but its /types listing doesn't mention, so they
+	 * have to be added by hand. "minecraft"/"project" version counts are just placeholders
+	 * (>0 vs. 0) so {@code isMcVersionApplicable} picks the right prompt: LoohpLimbo's builds
+	 * are keyed by Minecraft version, Nanolimbo's by its own release version (like Velocity).
+	 */
+	private static final Map<String, Object> EXTRA_TYPES = extraTypes();
+
 	private final HttpClient client = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(15))
 			.followRedirects(HttpClient.Redirect.ALWAYS)
@@ -26,7 +36,32 @@ final class McJarsApi {
 	@SuppressWarnings("unchecked")
 	Map<String, Object> types() throws IOException, InterruptedException {
 		Map<String, Object> response = (Map<String, Object>) Json.parse(get(BASE + "/types"));
-		return (Map<String, Object>) response.get("types");
+		Map<String, Object> types = new LinkedHashMap<>((Map<String, Object>) response.get("types"));
+		types.putAll(EXTRA_TYPES);
+		return types;
+	}
+
+	private static Map<String, Object> extraTypes() {
+		Map<String, Object> types = new LinkedHashMap<>();
+		types.put("LOOHPLIMBO", type("LoohpLimbo",
+				"A lightweight limbo server (holds players in a fake world, e.g. behind a proxy while the real backend is down).",
+				1, 0));
+		types.put("NANOLIMBO", type("NanoLimbo",
+				"A high-performance, low-footprint limbo server for holding large numbers of connections.",
+				0, 1));
+		return types;
+	}
+
+	private static Map<String, Object> type(String name, String description, long mcVersionCount, long projectVersionCount) {
+		Map<String, Object> versions = new LinkedHashMap<>();
+		versions.put("minecraft", mcVersionCount);
+		versions.put("project", projectVersionCount);
+
+		Map<String, Object> info = new LinkedHashMap<>();
+		info.put("name", name);
+		info.put("description", description);
+		info.put("versions", versions);
+		return info;
 	}
 
 	/**
