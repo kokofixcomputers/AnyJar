@@ -45,6 +45,14 @@ public final class AnyJarLauncher {
 	private static final Pattern SERVER_PORT = Pattern.compile("(?m)^\\s*server-port\\s*=\\s*(\\d+)\\s*$");
 	private static final Pattern BIND_LINE = Pattern.compile("(?m)^(\\s*bind\\s*=\\s*\")([^\"]*)(\"\\s*)$");
 
+	private static final Path EULA_FILE = Path.of("eula.txt");
+	// Proxies have no world/EULA concept; everything else (vanilla, Paper, Forge, Arclight,
+	// NeoForge, limbo servers, ...) is a real Minecraft server and refuses to start without
+	// eula.txt containing eula=true - it just prints a notice and exits cleanly instead, which
+	// looks like a normal shutdown to us, so whatever auto-restarts the process loops forever.
+	private static final java.util.Set<String> NO_EULA_TYPES = java.util.Set.of(
+			"VELOCITY", "WATERFALL", "BUNGEECORD", "VELOCITYCTD");
+
 	private AnyJarLauncher() {
 	}
 
@@ -64,6 +72,7 @@ public final class AnyJarLauncher {
 			if (isVelocity(config)) {
 				syncVelocityPort();
 			}
+			ensureEulaAccepted(config);
 
 			exitCode = runServer(config);
 		} catch (Exception e) {
@@ -139,6 +148,30 @@ public final class AnyJarLauncher {
 			LOGGER.info("Rewrote velocity.toml bind from \"{}\" to \"{}\" to match server.properties' server-port={}.", currentBind, desiredBind, port);
 		} catch (IOException e) {
 			LOGGER.warn("Failed to sync velocity.toml's bind port with server.properties", e);
+		}
+	}
+
+	/**
+	 * Writes eula.txt with eula=true before launch, for every software type that actually
+	 * has a EULA (i.e. not a bare proxy). Overwrites an existing eula=false, but never
+	 * touches a file that's already eula=true. Any failure here is non-fatal and logged -
+	 * the server software's own startup message will explain what's wrong instead.
+	 */
+	private static void ensureEulaAccepted(LaunchConfig config) {
+		if (NO_EULA_TYPES.contains(config.type.toUpperCase())) {
+			return;
+		}
+		try {
+			if (Files.exists(EULA_FILE)) {
+				String existing = Files.readString(EULA_FILE, StandardCharsets.UTF_8);
+				if (existing.contains("eula=true")) {
+					return;
+				}
+			}
+			Files.writeString(EULA_FILE, "eula=true\n", StandardCharsets.UTF_8);
+			LOGGER.info("Accepted the Minecraft EULA on your behalf (wrote {}).", EULA_FILE);
+		} catch (IOException e) {
+			LOGGER.warn("Failed to write {}, the server may refuse to start.", EULA_FILE, e);
 		}
 	}
 
